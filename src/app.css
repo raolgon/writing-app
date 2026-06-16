@@ -37,8 +37,15 @@ select {
 }
 
 .ProseMirror {
+  caret-color: #111827;
   min-height: inherit;
   cursor: text;
+}
+
+.ProseMirror:focus,
+.ProseMirror:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .ProseMirror p {
