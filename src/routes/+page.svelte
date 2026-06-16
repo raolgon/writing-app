@@ -83,7 +83,6 @@
   let editorContentJson = $state<unknown>(null);
   let editorPlainText = $state('');
   let focusMode = $state(false);
-  let textWidth = $state<'narrow' | 'medium' | 'wide'>('medium');
   let editorFontSize = $state(18);
   let editorLineHeight = $state(1.7);
   let editorRenderNonce = $state(0);
@@ -165,13 +164,6 @@
         : showBinderPanel
           ? 'grid min-h-0 grid-cols-[19rem_1fr_25rem] bg-white'
           : 'grid min-h-0 grid-cols-[1fr_25rem] bg-white',
-  );
-  const editorWidthClass = $derived(
-    textWidth === 'narrow'
-      ? 'max-w-xl'
-      : textWidth === 'wide'
-        ? 'max-w-4xl'
-        : 'max-w-2xl',
   );
   const activeModeLabel = $derived(
     workspaceView === 'search'
@@ -1565,7 +1557,7 @@
           {/if}
         </div>
       {:else if $currentDocumentStore && selectedItem && itemHasDocument(selectedItem)}
-        <div class={`mx-auto min-h-full ${editorWidthClass}`}>
+        <div class="mx-auto min-h-full w-full max-w-none">
           {#if activeSearchHighlight}
             <div
               class="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-900"
