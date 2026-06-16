@@ -37,7 +37,8 @@ select {
 }
 
 .ProseMirror {
-  min-height: 28rem;
+  min-height: inherit;
+  cursor: text;
 }
 
 .ProseMirror p {

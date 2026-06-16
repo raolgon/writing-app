@@ -47,7 +47,7 @@
       editorProps: {
         attributes: {
           class:
-            'min-h-[calc(100vh-12rem)] max-w-none font-serif outline-none prose prose-neutral prose-p:text-ink-900 prose-p:leading-relaxed prose-headings:text-ink-900',
+            'min-h-full max-w-none font-serif outline-none prose prose-neutral prose-p:text-ink-900 prose-p:leading-relaxed prose-headings:text-ink-900',
           'aria-label': 'Editor de documento',
         },
       },
@@ -284,9 +284,14 @@
   <div class="sr-only" aria-live="polite">Editor actualizado {updateToken}</div>
 {/key}
 
-<div role="group" aria-label="Editor enriquecido">
+<div
+  class="h-full min-h-[calc(100vh-12rem)]"
+  role="group"
+  aria-label="Editor enriquecido"
+>
   <div
     bind:this={editorElement}
+    class="h-full min-h-[inherit]"
     style={`font-size: ${fontSize}px; line-height: ${lineHeight}`}
   ></div>
 </div>
