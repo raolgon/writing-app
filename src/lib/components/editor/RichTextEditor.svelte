@@ -47,7 +47,7 @@
       editorProps: {
         attributes: {
           class:
-            'min-h-96 max-w-none font-serif outline-none prose prose-neutral prose-p:text-ink-900 prose-p:leading-relaxed prose-headings:text-ink-900',
+            'min-h-[calc(100vh-12rem)] max-w-none font-serif outline-none prose prose-neutral prose-p:text-ink-900 prose-p:leading-relaxed prose-headings:text-ink-900',
           'aria-label': 'Editor de documento',
         },
       },

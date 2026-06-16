@@ -139,6 +139,33 @@
       ? documentChildren($binderItemsStore, selectedItem.id)
       : [],
   );
+  const isSimpleMode = $derived(
+    $projectSessionStore?.project.projectType === 'blank',
+  );
+  const hasBinderStructure = $derived(
+    $binderItemsStore.length > 1 ||
+      $binderItemsStore.some((item) => item.itemType === 'folder'),
+  );
+  const showBinderPanel = $derived(
+    !focusMode &&
+      workspaceView === 'write' &&
+      selectedItem?.itemType !== 'folder' &&
+      (!isSimpleMode || hasBinderStructure),
+  );
+  const showInspectorPanel = $derived(
+    !focusMode &&
+      workspaceView === 'write' &&
+      selectedItem?.itemType !== 'folder',
+  );
+  const workspaceGridClass = $derived(
+    focusMode
+      ? 'grid min-h-0 grid-cols-[4.5rem_1fr] bg-white'
+      : workspaceView !== 'write' || selectedItem?.itemType === 'folder'
+        ? 'grid min-h-0 grid-cols-[1fr] bg-ink-50'
+        : showBinderPanel
+          ? 'grid min-h-0 grid-cols-[19rem_1fr_25rem] bg-white'
+          : 'grid min-h-0 grid-cols-[1fr_25rem] bg-white',
+  );
   const editorWidthClass = $derived(
     textWidth === 'narrow'
       ? 'max-w-xl'
@@ -155,7 +182,9 @@
           ? 'Organizar'
           : $projectSessionStore?.project.projectType === 'screenplay'
             ? 'Guion'
-            : 'Novela',
+            : isSimpleMode
+              ? 'Sencillo'
+              : 'Novela',
   );
   const savedLabel = $derived(
     $saveStatusStore === 'dirty'
@@ -167,12 +196,12 @@
           : 'Guardado localmente',
   );
   const targetWordCount = $derived(
-    parseOptionalPositiveInteger(targetWordCountDraft) ?? 2000,
+    parseOptionalPositiveInteger(targetWordCountDraft),
   );
   const targetProgress = $derived(
     Math.min(
       100,
-      targetWordCount > 0 ? (liveWordCount / targetWordCount) * 100 : 0,
+      targetWordCount ? (liveWordCount / targetWordCount) * 100 : 0,
     ),
   );
   const bottomLeftStatus = $derived(
@@ -181,8 +210,8 @@
       : workspaceView === 'export'
         ? 'Los archivos se guardan localmente'
         : selectedItem?.itemType === 'folder'
-          ? `${selectedFolderDocumentChildren.length} escenas · ${selectedFolderDocumentChildren.length * 1150} palabras`
-          : `${liveWordCount} palabras · Objetivo ${targetWordCount}`,
+          ? `${selectedFolderDocumentChildren.length} escenas`
+          : `${liveWordCount} palabras`,
   );
   const bottomRightStatus = $derived(
     workspaceView === 'search'
@@ -1050,20 +1079,59 @@
           >›</button
         >
       </div>
-      <button
-        type="button"
-        class="flex min-w-0 items-center gap-4 text-left"
-        aria-label="Abrir proyecto"
-        title="Abrir proyecto"
-        onclick={openProjectFromPrompt}
-      >
-        <h1 class="truncate text-xl font-semibold">
-          {$projectSessionStore?.project.title ??
-            selectedItem?.title ??
+      <div class="flex min-w-0 items-center gap-3">
+        <input
+          class="min-w-0 max-w-[22rem] truncate bg-transparent text-xl font-semibold outline-none focus:text-accent-600"
+          aria-label="Título del documento"
+          value={selectedItem?.title ??
+            $projectSessionStore?.project.title ??
             'Sin título'}
-        </h1>
-        <span class="text-sm text-ink-500">⌄</span>
-      </button>
+          onblur={(event) => {
+            const title = event.currentTarget.value.trim();
+            if (selectedItem && title && title !== selectedItem.title) {
+              void renameItem(selectedItem.id, title);
+            }
+          }}
+          onkeydown={(event) => {
+            if (event.key === 'Enter') {
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <button
+          type="button"
+          class="text-sm text-ink-500 hover:text-ink-900"
+          aria-label="Abrir proyecto"
+          title="Abrir proyecto"
+          onclick={openProjectFromPrompt}
+        >
+          ⌄
+        </button>
+      </div>
+      {#if workspaceView === 'write' && selectedItem?.itemType !== 'folder'}
+        <div class="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            class="rounded-md px-2 py-1 text-sm font-semibold text-ink-500 hover:bg-ink-50"
+            disabled={isBusy || !$projectSessionStore}
+            title="Nuevo documento"
+            aria-label="Nuevo documento"
+            onclick={createQuickDocument}
+          >
+            + Doc
+          </button>
+          <button
+            type="button"
+            class="rounded-md px-2 py-1 text-sm font-semibold text-ink-500 hover:bg-ink-50"
+            disabled={isBusy || !$projectSessionStore}
+            title="Nueva carpeta"
+            aria-label="Nueva carpeta"
+            onclick={createQuickFolder}
+          >
+            + Carpeta
+          </button>
+        </div>
+      {/if}
     </div>
 
     <div
@@ -1098,13 +1166,7 @@
     </div>
   </header>
 
-  <div
-    class={focusMode
-      ? 'grid min-h-0 grid-cols-[4.5rem_1fr] bg-white'
-      : workspaceView !== 'write' || selectedItem?.itemType === 'folder'
-        ? 'grid min-h-0 grid-cols-[1fr] bg-ink-50'
-        : 'grid min-h-0 grid-cols-[19rem_1fr_25rem] bg-white'}
-  >
+  <div class={workspaceGridClass}>
     {#if focusMode}
       <aside
         class="border-r border-ink-100 bg-ink-50 px-8 py-9"
@@ -1116,7 +1178,7 @@
           aria-label="Abrir documentos">≡</button
         >
       </aside>
-    {:else if workspaceView === 'write' && selectedItem?.itemType !== 'folder'}
+    {:else if showBinderPanel}
       <aside
         aria-label="Binder"
         class="overflow-auto border-r border-ink-100 bg-ink-50 px-6 py-8"
@@ -1184,7 +1246,7 @@
           : 'Editor'}
       class={workspaceView !== 'write' || selectedItem?.itemType === 'folder'
         ? 'min-h-0 overflow-auto bg-ink-50 px-14 py-10'
-        : 'min-h-0 overflow-auto bg-white px-10 py-16'}
+        : 'min-h-0 overflow-auto bg-white px-10 py-10'}
     >
       {#if workspaceView === 'search'}
         <div class="mx-auto grid max-w-[112rem] gap-8">
@@ -1503,7 +1565,7 @@
           {/if}
         </div>
       {:else if $currentDocumentStore && selectedItem && itemHasDocument(selectedItem)}
-        <div class={`mx-auto ${editorWidthClass}`}>
+        <div class={`mx-auto min-h-full ${editorWidthClass}`}>
           {#if activeSearchHighlight}
             <div
               class="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-900"
@@ -1511,14 +1573,6 @@
               Resultado abierto: “{activeSearchHighlight}”
             </div>
           {/if}
-          <div class="mb-16">
-            <h1 class="text-4xl font-bold text-ink-900">
-              {selectedItem.title}
-            </h1>
-            {#if synopsisDraft}
-              <p class="mt-4 text-2xl text-ink-500">{synopsisDraft}</p>
-            {/if}
-          </div>
 
           {#key `${$currentDocumentStore.id}:${editorRenderNonce}`}
             <RichTextEditor
@@ -1539,7 +1593,7 @@
       {/if}
     </section>
 
-    {#if !focusMode && workspaceView === 'write' && selectedItem?.itemType !== 'folder'}
+    {#if showInspectorPanel}
       <aside
         aria-label="Inspector"
         class="overflow-auto border-l border-ink-100 bg-white px-9 py-9"
@@ -1576,18 +1630,22 @@
               />
             </label>
 
-            <div class="grid gap-4">
-              <span class="text-base font-semibold text-ink-500">Objetivo</span>
-              <div class="h-1 rounded-full bg-ink-100">
-                <div
-                  class="h-1 rounded-full bg-emerald-500"
-                  style={`width: ${targetProgress}%`}
-                ></div>
-              </div>
-              <p class="text-right text-sm font-medium text-ink-500">
-                {liveWordCount.toLocaleString()} / {targetWordCount.toLocaleString()}
-                palabras
+            <div class="grid gap-2">
+              <span class="text-base font-semibold text-ink-500">Palabras</span>
+              <p class="text-3xl font-semibold text-ink-900">
+                {liveWordCount.toLocaleString()}
               </p>
+              {#if targetWordCount}
+                <div class="mt-2 h-1 rounded-full bg-ink-100">
+                  <div
+                    class="h-1 rounded-full bg-emerald-500"
+                    style={`width: ${targetProgress}%`}
+                  ></div>
+                </div>
+                <p class="text-sm font-medium text-ink-500">
+                  Meta opcional: {targetWordCount.toLocaleString()}
+                </p>
+              {/if}
             </div>
 
             <details class="rounded-lg border border-ink-100 p-4">
@@ -1615,7 +1673,7 @@
                 </label>
                 <label class="grid gap-2">
                   <span class="text-sm font-medium text-ink-500"
-                    >Objetivo de palabras</span
+                    >Meta de palabras opcional</span
                   >
                   <input
                     inputmode="numeric"
